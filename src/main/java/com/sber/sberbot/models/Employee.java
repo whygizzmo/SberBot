@@ -10,7 +10,6 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-
 @Table(name = "tb_employee")
 public class Employee {
     @Id
