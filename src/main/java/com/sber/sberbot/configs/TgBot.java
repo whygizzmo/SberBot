@@ -1,22 +1,64 @@
 package com.sber.sberbot.configs;
 
-import lombok.Data;
+import com.sber.sberbot.models.Admin;
+import com.sber.sberbot.models.enums.State;
+import com.sber.sberbot.services.AdminService;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class TgBot extends TelegramLongPollingBot {
+    State botState;
     final BotConfig botConfig;
+    final AdminService adminService;
 
-    public TgBot(BotConfig botConfig) {
+    public TgBot(BotConfig botConfig, AdminService adminService) {
         this.botConfig = botConfig;
+        this.adminService = adminService;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
 
+
+        try {
+
+            String chatId = update.getMessage().getChatId().toString();
+            String inMessage = update.getMessage().getText();
+
+            if (botState == State.WAITING_USERNAME) {
+                adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName());
+                botState = State.FREE;
+                execute(new SendMessage(chatId, "Админ добавлен"));
+            }
+
+
+            if (botState == State.FREE) {
+
+
+                if (inMessage.equals("/addAdmin")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        botState = State.WAITING_USERNAME;
+                        execute(new SendMessage(chatId, "Введите юзернейм нового админа"));
+                    }else {
+                        execute(new SendMessage(chatId,"Вы не являетесь админом"));
+                    }
+
+                }
+
+            }
+        } catch (Exception e) {
+            //это на всякий случай пока. мб логи будут или просто пусто оставим
+            System.err.println("ERROR");
+        }
     }
 
 
