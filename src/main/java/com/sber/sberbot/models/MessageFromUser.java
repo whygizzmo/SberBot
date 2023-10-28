@@ -17,8 +17,6 @@ public class MessageFromUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String messageText;
-    @ManyToOne
-    @JoinColumn(name = "employee_id")
-    Employee employee;
-    LocalDate messageDate;
+    Long employeeId;
+    Integer messageDate;
 }
