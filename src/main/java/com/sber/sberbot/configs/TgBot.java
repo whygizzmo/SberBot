@@ -55,7 +55,7 @@ public class TgBot extends TelegramLongPollingBot {
             if (botState == State.WAITING_USERNAME) {
                 botState = State.FREE;
                 adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName());
-                execute(new SendMessage(chatId, "????? ????????"));
+                execute(new SendMessage(chatId, "Админ добавлен"));
             }
 
 
@@ -68,9 +68,9 @@ public class TgBot extends TelegramLongPollingBot {
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_USERNAME;
-                        execute(new SendMessage(chatId, "??????? ???????? ?????? ??????"));
+                        execute(new SendMessage(chatId, "Введите юзернейм нового админа"));
                     } else {
-                        execute(new SendMessage(chatId, "?? ?? ????????? ???????"));
+                        execute(new SendMessage(chatId, "Вы не являетесь админом"));
                     }
 
                 }
