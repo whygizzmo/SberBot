@@ -13,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 @Table(name = "tb_employee")
 public class Employee {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     Long tgId;
     String username;

@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Table(name = "tb_admin")
 public class Admin {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     @ManyToOne
     @JoinColumn(name = "employee_id")

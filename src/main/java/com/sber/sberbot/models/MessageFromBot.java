@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @RequiredArgsConstructor
@@ -21,5 +22,5 @@ public class MessageFromBot {
     @ManyToOne
     @JoinColumn(name = "employee_id")
     Employee employee;
-    LocalDate messageDate;
+    LocalDateTime messageDate;
 }

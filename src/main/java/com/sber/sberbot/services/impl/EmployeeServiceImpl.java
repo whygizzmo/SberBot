@@ -1,6 +1,7 @@
 package com.sber.sberbot.services.impl;
 
 import com.sber.sberbot.models.Employee;
+import com.sber.sberbot.models.dtos.FindEmployeeDto;
 import com.sber.sberbot.repos.EmployeeRepo;
 import com.sber.sberbot.services.EmployeeService;
 import org.springframework.stereotype.Service;
@@ -14,14 +15,14 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public Employee findOrCreateEmployee(Long telegramId, String username) {
+    public Employee findOrCreateEmployee(FindEmployeeDto findEmployeeDto) {
 
-        Employee employee = employeeRepo.findByTgId(telegramId);
+        Employee employee = employeeRepo.findByTgId(findEmployeeDto.getChatId());
         if (employee == null) {
             employee = new Employee();
             employee.setActive(true);
-            employee.setTgId(telegramId);
-            employee.setUsername(username);
+            employee.setTgId(findEmployeeDto.getChatId());
+            employee.setUsername(findEmployeeDto.getUsername());
 
             return employeeRepo.save(employee);
         }
