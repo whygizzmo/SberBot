@@ -17,6 +17,5 @@ public class Employee {
     Long id;
     Long tgId;
     String username;
-    String phoneNumber;
     boolean isActive;
 }

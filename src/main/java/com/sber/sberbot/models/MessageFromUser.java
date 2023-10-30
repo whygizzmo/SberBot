@@ -1,10 +1,13 @@
 package com.sber.sberbot.models;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ public class MessageFromUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
     String messageText;
-    Long employeeId;
-    Integer messageDate;
+    @ManyToOne
+    Employee employeeId;
+    LocalDateTime messageDate;
 }

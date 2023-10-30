@@ -1,36 +1,38 @@
 package com.sber.sberbot.configs;
 
 import com.sber.sberbot.models.Admin;
+import com.sber.sberbot.models.Employee;
 import com.sber.sberbot.models.MessageFromUser;
 import com.sber.sberbot.models.enums.State;
-import com.sber.sberbot.repos.MessageFromUserRepo;
 import com.sber.sberbot.services.AdminService;
+import com.sber.sberbot.services.EmployeeService;
+import com.sber.sberbot.services.MessageFromUserService;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDate;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
 public class TgBot extends TelegramLongPollingBot {
-    State botState;
+    State botState = State.FREE;
     final BotConfig botConfig;
     final AdminService adminService;
-    private final MessageFromUserRepo messageFromUserRepo;
+    final EmployeeService employeeService;
+    final MessageFromUserService messageFromUserService;
 
-    public TgBot(BotConfig botConfig, AdminService adminService, MessageFromUserRepo messageFromUserRepo) {
+    public TgBot(BotConfig botConfig, AdminService adminService, EmployeeService employeeService, MessageFromUserService messageFromUserService) {
         this.botConfig = botConfig;
         this.adminService = adminService;
-        this.messageFromUserRepo = messageFromUserRepo;
+        this.employeeService = employeeService;
+        this.messageFromUserService = messageFromUserService;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
-
-
 
 
         try {
@@ -38,10 +40,22 @@ public class TgBot extends TelegramLongPollingBot {
             String chatId = update.getMessage().getChatId().toString();
             String inMessage = update.getMessage().getText();
 
+            if (update.hasMessage() && update.getMessage().hasText()) {
+
+                Employee employee = employeeService.findOrCreateEmployee(Long.valueOf(chatId),update.getMessage().getFrom().getUserName());
+
+                MessageFromUser messageFromUser = new MessageFromUser();
+                messageFromUser.setMessageText(inMessage);
+                messageFromUser.setEmployeeId(employee);
+                messageFromUser.setMessageDate(LocalDateTime.now());
+                messageFromUserService.createNewMessage(messageFromUser);
+
+            }
+
             if (botState == State.WAITING_USERNAME) {
-                adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName());
                 botState = State.FREE;
-                execute(new SendMessage(chatId, "Админ добавлен"));
+                adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName());
+                execute(new SendMessage(chatId, "????? ????????"));
             }
 
 
@@ -54,30 +68,20 @@ public class TgBot extends TelegramLongPollingBot {
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_USERNAME;
-                        execute(new SendMessage(chatId, "Введите юзернейм нового админа"));
-                    }else {
-                        execute(new SendMessage(chatId,"Вы не являетесь админом"));
+                        execute(new SendMessage(chatId, "??????? ???????? ?????? ??????"));
+                    } else {
+                        execute(new SendMessage(chatId, "?? ?? ????????? ???????"));
                     }
 
                 }
 
             }
         } catch (Exception e) {
-            //это на всякий случай пока. мб логи будут или просто пусто оставим
+            //??? ?? ?????? ?????? ????. ?? ???? ????? ??? ?????? ????? ???????
             System.err.println("ERROR");
         }
-            //вообще это надо на самый верх но там ошибку показывает
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            long chatId = update.getMessage().getChatId();
-            String messageText = update.getMessage().getText();
-            Integer messageDate = update.getMessage().getDate();
-            MessageFromUser messageFromUser = new MessageFromUser();
-            messageFromUser.setMessageText(messageText);
-            messageFromUser.setEmployeeId(chatId);
-            messageFromUser.setMessageDate(messageDate);
-            messageFromUserRepo.save(messageFromUser);
+        //?????? ??? ???? ?? ????? ???? ?? ??? ?????? ??????????
 
-        }
     }
 
 
