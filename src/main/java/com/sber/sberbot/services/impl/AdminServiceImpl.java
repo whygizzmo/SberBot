@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+
 @Service
 public class AdminServiceImpl implements AdminService {
     private final AdminRepo adminRepo;
@@ -28,6 +29,9 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public Admin createNewAdmin(String newAdminUsername, String adminUsername) {
         Employee newAdmin = employeeRepo.findByUsername(newAdminUsername);
+        if (newAdmin == null) {
+            return null;
+        }
         Admin assignedByAdmin = adminRepo.findByEmployeeUsername(adminUsername);
 
         Admin admin = new Admin();

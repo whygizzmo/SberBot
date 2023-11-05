@@ -21,6 +21,6 @@ public class MessageFromUser {
     Long id;
     String messageText;
     @ManyToOne
-    Employee employeeId;
+    Employee employee;
     LocalDateTime messageDate;
 }

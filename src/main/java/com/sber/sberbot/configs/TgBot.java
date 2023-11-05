@@ -14,10 +14,16 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -55,7 +61,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                 MessageFromUser messageFromUser = new MessageFromUser();
                 messageFromUser.setMessageText(inMessage);
-                messageFromUser.setEmployeeId(employee);
+                messageFromUser.setEmployee(employee);
                 messageFromUser.setMessageDate(LocalDateTime.now());
                 messageFromUserService.createNewMessage(messageFromUser);
 
@@ -63,8 +69,11 @@ public class TgBot extends TelegramLongPollingBot {
 
             if (botState == State.WAITING_USERNAME) {
                 botState = State.FREE;
-                adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName());
-                execute(new SendMessage(chatId, "Админ добавлен"));
+                if (adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName()) == null) {
+                    sendTextMessage(chatId, "Юзер с таким ником не найден");
+                } else {
+                    sendTextMessage(chatId, "Админ добавлен");
+                }
             }
 
 
@@ -82,6 +91,10 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
                     }
 
+                } else if (inMessage.equals("/admin")) {
+                    sendAdminPanel(chatId);
+                } else if (update.hasCallbackQuery()) {
+
                 }
 
             }
@@ -92,7 +105,8 @@ public class TgBot extends TelegramLongPollingBot {
         //?????? ??? ???? ?? ????? ???? ?? ??? ?????? ??????????
 
     }
-    public void sendTextMessage(String chatId, String text){
+
+    public void sendTextMessage(String chatId, String text) {
         try {
             SendMessage sendMessage = new SendMessage();
             FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
@@ -115,6 +129,61 @@ public class TgBot extends TelegramLongPollingBot {
 
     }
 
+    public void sendTextMessage(SendMessage message) {
+        MessageFromBot messageFromBot = new MessageFromBot();
+        FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
+
+        messageFromBot.setMessageText(message.getText());
+        messageFromBot.setId(Long.valueOf(message.getChatId()));
+        messageFromBot.setMessageDate(LocalDateTime.now());
+        findEmployeeDto.setChatId(Long.valueOf(message.getChatId()));
+        messageFromBot.setEmployee(employeeService.findOrCreateEmployee(findEmployeeDto));
+        messageFromBotService.saveMessageFromBot(messageFromBot);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void sendAdminPanel(String chatId) {
+        List<Admin> admins = adminService.getAll();
+        if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                a.getEndDate().isAfter(LocalDate.now()))) {
+            ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+            List<KeyboardRow> keyboard = new ArrayList<>();
+
+            KeyboardRow row = new KeyboardRow();
+
+            // Команды для админ панели
+
+            //кнопка AddAdmin
+            KeyboardButton addAdminCommand = new KeyboardButton();
+            addAdminCommand.setText("/addAdmin");
+            row.add(addAdminCommand);
+            //кнопка DeleteAdmin
+            KeyboardButton deleteAdminCommand = new KeyboardButton();
+            deleteAdminCommand.setText("/deleteAdmin");
+            row.add(deleteAdminCommand);
+
+
+            keyboard.add(row);
+
+            keyboardMarkup.setKeyboard(keyboard);
+
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId);
+            message.setText("Административная панель:");
+            message.setReplyMarkup(keyboardMarkup);
+
+            sendTextMessage(message);
+        } else {
+            sendTextMessage(chatId, "Вы не являетесь админом");
+        }
+
+    }
+
 
     @Override
     public String getBotUsername() {
@@ -126,3 +195,4 @@ public class TgBot extends TelegramLongPollingBot {
         return botConfig.botToken;
     }
 }
+
