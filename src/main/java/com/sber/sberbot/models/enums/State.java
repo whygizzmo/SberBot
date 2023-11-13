@@ -2,5 +2,6 @@ package com.sber.sberbot.models.enums;
 
 public enum State {
     FREE,
-    WAITING_USERNAME
+    WAITING_USERNAME_FOR_ADD_ADMIN,
+    WAITING_ID_FOR_DELETE_ADMIN
 }

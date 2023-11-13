@@ -8,4 +8,8 @@ public interface AdminService {
     List<Admin> getAll();
 
     Admin createNewAdmin(String username, String adminUsername);
+
+    String getAdmins();
+
+    Admin deleteAdmin(Long id);
 }
