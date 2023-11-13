@@ -8,6 +8,7 @@ import com.sber.sberbot.services.AdminService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -42,6 +43,29 @@ public class AdminServiceImpl implements AdminService {
 
         return adminRepo.save(admin);
 
+    }
+
+    @Override
+    public Admin deleteAdmin(Long id) {
+        Admin admin = adminRepo.findById(id).get();
+        if (admin == null) {
+            return null;
+        }
+        admin.setEndDate(LocalDate.now());
+        adminRepo.save(admin);
+
+        return admin;
+    }
+
+    @Override
+    public String getAdmins() {
+        List<Admin> admins = adminRepo.findAllByEndDateAfter(LocalDate.now());
+        String adminsStr = "";
+        for (int i = 0; i < admins.size(); i++) {
+            adminsStr = adminsStr + (admins.get(i).getId() + ". " + admins.get(i).getEmployee().getUsername() + "\n");
+        }
+        System.err.println("$$$$$ " + adminsStr);
+        return adminsStr;
     }
 
 

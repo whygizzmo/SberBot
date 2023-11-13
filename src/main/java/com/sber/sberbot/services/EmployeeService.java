@@ -5,4 +5,6 @@ import com.sber.sberbot.models.dtos.FindEmployeeDto;
 
 public interface EmployeeService {
     Employee findOrCreateEmployee(FindEmployeeDto findEmployeeDto);
+
+    String getAllEmployes();
 }

