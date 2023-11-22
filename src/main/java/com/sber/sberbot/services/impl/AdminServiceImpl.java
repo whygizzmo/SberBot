@@ -33,7 +33,7 @@ public class AdminServiceImpl implements AdminService {
         if (newAdmin == null) {
             return null;
         }
-        Admin assignedByAdmin = adminRepo.findByEmployeeUsername(adminUsername);
+        Admin assignedByAdmin = adminRepo.findByEmployeeUsernameAndEndDateAfter(adminUsername,LocalDate.now());
 
         Admin admin = new Admin();
         admin.setEmployee(newAdmin);
