@@ -17,6 +17,21 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    public String changeEmployeeStatus(Long id) {
+        Employee employee = employeeRepo.findById(id).get();
+        if (employee == null) {
+            return null;
+        }
+        if (employee.isActive()) {
+            employee.setActive(false);
+        } else {
+            employee.setActive(true);
+        }
+        employeeRepo.save(employee);
+        return "Статус пользователя успешно изменен";
+    }
+
+    @Override
     public Employee findOrCreateEmployee(FindEmployeeDto findEmployeeDto) {
 
         Employee employee = employeeRepo.findByTgId(findEmployeeDto.getChatId());
@@ -33,7 +48,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public String getAllEmployes() {
+    public String getAllEmployees() {
         List<Employee> employees = employeeRepo.findAll();
         String employeesStr = "";
         for (int i = 0; i < employees.size(); i++) {

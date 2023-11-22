@@ -94,7 +94,26 @@ public class TgBot extends TelegramLongPollingBot {
 
                 String messageStr;
 
-                if ((messageStr = messageFromUserService.getUserMessages(Long.valueOf(inMessage))) == null) {
+                if (botState == State.WAITING_ID_FOR_USERS_MESSAGE) {
+
+                    botState = State.FREE;
+
+
+                    if ((messageStr = messageFromUserService.getUserMessages(Long.valueOf(inMessage))) == null) {
+
+                        sendTextMessage(chatId, "Пользователь с таким id не найден");
+
+                    } else {
+
+                        sendTextMessage(chatId, messageStr);
+                    }
+                }
+            } else if (botState == State.WAITING_ID_FOR_CHANGE_USERS_STATUS) {
+                botState = State.FREE;
+
+                String messageStr;
+
+                if ((messageStr = employeeService.changeEmployeeStatus(Long.valueOf(inMessage))) == null) {
 
                     sendTextMessage(chatId, "Пользователь с таким id не найден");
 
@@ -142,7 +161,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                 } else if (inMessage.equals("/getAllUsers")) {
 
-                    sendTextMessage(chatId, employeeService.getAllEmployes());
+                    sendTextMessage(chatId, employeeService.getAllEmployees());
 
                 } else if (inMessage.equals("/getUserMessages")) {
                     List<Admin> admins = adminService.getAll();
@@ -150,7 +169,7 @@ public class TgBot extends TelegramLongPollingBot {
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_ID_FOR_USERS_MESSAGE;
-                        sendTextMessage(chatId, employeeService.getAllEmployes() +
+                        sendTextMessage(chatId, employeeService.getAllEmployees() +
                                 "\nВведите id пользователя чьи сообщения хотите получить :  ");
                     } else {
 
@@ -158,6 +177,20 @@ public class TgBot extends TelegramLongPollingBot {
 
                     }
 
+                } else if (inMessage.equals("/changeUserStatus")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        botState = State.WAITING_ID_FOR_CHANGE_USERS_STATUS;
+                        sendTextMessage(chatId, employeeService.getAllEmployees() +
+                                "\n Введите id пользователя чей статус хотите поменять");
+
+                    } else {
+
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+
+                    }
                 }
 
             }
@@ -171,7 +204,6 @@ public class TgBot extends TelegramLongPollingBot {
     }
 
     public void sendTextMessage(String chatId, String text) {
-        System.err.println("text " + text.length());
         FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
 
         int over = 1200;
@@ -205,7 +237,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                 MessageFromBot message = new MessageFromBot();
                 message.setMessageText(text.substring(startIndex, endIndex).length() > 255 ?
-                        text.substring(startIndex,startIndex + 255) : text.substring(startIndex, endIndex));
+                        text.substring(startIndex, startIndex + 255) : text.substring(startIndex, endIndex));
                 message.setId(Long.valueOf(chatId));
                 message.setMessageDate(LocalDateTime.now());
                 findEmployeeDto.setChatId(Long.valueOf(chatId));
@@ -237,10 +269,9 @@ public class TgBot extends TelegramLongPollingBot {
     }
 
     public void sendTextMessage(SendMessage message) {
-        System.err.println("message " + message.getText().length());
         FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
 
-         int over = 1200;
+        int over = 1200;
 
         if (message.getText().length() > over) {
             int startIndex = 0;
@@ -320,6 +351,10 @@ public class TgBot extends TelegramLongPollingBot {
             KeyboardButton getUserMessagesCommand = new KeyboardButton();
             getUserMessagesCommand.setText("/getUserMessages");
             row.add(getUserMessagesCommand);
+            //кнопка changeUserStatus
+            KeyboardButton changeUserStatusCommand = new KeyboardButton();
+            changeUserStatusCommand.setText("/changeUserStatus");
+            row.add(changeUserStatusCommand);
 
 
             keyboard.add(row);

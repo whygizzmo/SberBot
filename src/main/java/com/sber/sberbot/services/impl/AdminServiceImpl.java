@@ -64,7 +64,6 @@ public class AdminServiceImpl implements AdminService {
         for (int i = 0; i < admins.size(); i++) {
             adminsStr = adminsStr + (admins.get(i).getId() + ". " + admins.get(i).getEmployee().getUsername() + "\n");
         }
-        System.err.println("$$$$$ " + adminsStr);
         return adminsStr;
     }
 
