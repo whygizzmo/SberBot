@@ -44,7 +44,7 @@ public class TgBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
-
+        //сделать отправку сообщений от чела с датой и дроблением на смс
         try {
 
             String chatId = update.getMessage().getChatId().toString();
@@ -68,16 +68,39 @@ public class TgBot extends TelegramLongPollingBot {
             if (botState == State.WAITING_USERNAME_FOR_ADD_ADMIN) {
                 botState = State.FREE;
                 if (adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName()) == null) {
+
                     sendTextMessage(chatId, "Юзер с таким ником не найден");
+
                 } else {
+
                     sendTextMessage(chatId, "Админ добавлен");
                 }
             } else if (botState == State.WAITING_ID_FOR_DELETE_ADMIN) {
+
                 botState = State.FREE;
-                if (adminService.deleteAdmin(Long.valueOf(inMessage)) == null){
-                    sendTextMessage(chatId, "Админ с таким ником не найден");
-                }else {
-                    sendTextMessage(chatId,"Админ успешно удален");
+
+                if (adminService.deleteAdmin(Long.valueOf(inMessage)) == null) {
+
+                    sendTextMessage(chatId, "Админ с таким id не найден");
+
+                } else {
+
+                    sendTextMessage(chatId, "Админ успешно удален");
+                }
+
+            } else if (botState == State.WAITING_ID_FOR_USERS_MESSAGE) {
+
+                botState = State.FREE;
+
+                String messageStr;
+
+                if ((messageStr = messageFromUserService.getUserMessages(Long.valueOf(inMessage))) == null) {
+
+                    sendTextMessage(chatId, "Пользователь с таким id не найден");
+
+                } else {
+
+                    sendTextMessage(chatId, messageStr);
                 }
 
             } else if (botState == State.FREE) {
@@ -91,7 +114,9 @@ public class TgBot extends TelegramLongPollingBot {
                         botState = State.WAITING_USERNAME_FOR_ADD_ADMIN;
                         sendTextMessage(chatId, "Введите юзернейм нового админа");
                     } else {
+
                         sendTextMessage(chatId, "Вы не являетесь админом");
+
                     }
 
                 } else if (inMessage.equals("/admin")) {
@@ -106,13 +131,33 @@ public class TgBot extends TelegramLongPollingBot {
                         botState = State.WAITING_ID_FOR_DELETE_ADMIN;
                         sendTextMessage(chatId, adminService.getAdmins() + "\nВведите id админа которого хотите удалить");
                     } else {
+
                         sendTextMessage(chatId, "Вы не являетесь админом");
+
                     }
                 } else if (inMessage.equals("/баймайшегиба")) {
-                    adminService.createNewAdmin(update.getMessage().getChat().getUserName(),null);
-                    sendTextMessage(chatId,"\uD83D\uDE3C");
+
+                    adminService.createNewAdmin(update.getMessage().getChat().getUserName(), null);
+                    sendTextMessage(chatId, "\uD83D\uDE3C");
+
                 } else if (inMessage.equals("/getAllUsers")) {
-                    sendTextMessage(chatId,employeeService.getAllEmployes());
+
+                    sendTextMessage(chatId, employeeService.getAllEmployes());
+
+                } else if (inMessage.equals("/getUserMessages")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        botState = State.WAITING_ID_FOR_USERS_MESSAGE;
+                        sendTextMessage(chatId, employeeService.getAllEmployes() +
+                                "\nВведите id пользователя чьи сообщения хотите получить :  ");
+                    } else {
+
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+
+                    }
+
                 }
 
             }
@@ -126,13 +171,59 @@ public class TgBot extends TelegramLongPollingBot {
     }
 
     public void sendTextMessage(String chatId, String text) {
-        try {
+        System.err.println("text " + text.length());
+        FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
+
+        int over = 1200;
+
+        if (text.length() > over) {
+
+            int startIndex = 0;
+            int endIndex = over;
+
+            for (int i = 0; i <= text.length() / over; i++) {
+
+                if (endIndex > text.length()) {
+                    endIndex = text.length();
+                }
+
+                SendMessage sendMessage = new SendMessage();
+
+                sendMessage.setChatId(chatId);
+                sendMessage.setText(text.substring(startIndex, endIndex));
+
+                try {
+                    execute(sendMessage);
+                    Thread.sleep(2000);
+
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+                MessageFromBot message = new MessageFromBot();
+                message.setMessageText(text.substring(startIndex, endIndex).length() > 255 ?
+                        text.substring(startIndex,startIndex + 255) : text.substring(startIndex, endIndex));
+                message.setId(Long.valueOf(chatId));
+                message.setMessageDate(LocalDateTime.now());
+                findEmployeeDto.setChatId(Long.valueOf(chatId));
+                message.setEmployee(employeeService.findOrCreateEmployee(findEmployeeDto));
+                messageFromBotService.saveMessageFromBot(message);
+                startIndex += over;
+                endIndex += over;
+            }
+        } else {
             SendMessage sendMessage = new SendMessage();
-            FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
 
             sendMessage.setChatId(chatId);
             sendMessage.setText(text);
-            execute(sendMessage);
+            try {
+                execute(sendMessage);
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
             MessageFromBot message = new MessageFromBot();
             message.setMessageText(text);
             message.setId(Long.valueOf(chatId));
@@ -141,29 +232,65 @@ public class TgBot extends TelegramLongPollingBot {
             message.setEmployee(employeeService.findOrCreateEmployee(findEmployeeDto));
             messageFromBotService.saveMessageFromBot(message);
 
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+
         }
-
-
     }
 
     public void sendTextMessage(SendMessage message) {
-        MessageFromBot messageFromBot = new MessageFromBot();
+        System.err.println("message " + message.getText().length());
         FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
 
-        messageFromBot.setMessageText(message.getText());
-        messageFromBot.setId(Long.valueOf(message.getChatId()));
-        messageFromBot.setMessageDate(LocalDateTime.now());
-        findEmployeeDto.setChatId(Long.valueOf(message.getChatId()));
-        messageFromBot.setEmployee(employeeService.findOrCreateEmployee(findEmployeeDto));
-        messageFromBotService.saveMessageFromBot(messageFromBot);
+         int over = 1200;
 
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+        if (message.getText().length() > over) {
+            int startIndex = 0;
+            int endIndex = over;
+
+            for (int i = 0; i <= message.getText().length() / over; i++) {
+
+                if (endIndex > message.getText().length()) {
+                    endIndex = message.getText().length();
+                }
+
+                MessageFromBot messageFromBot = new MessageFromBot();
+                messageFromBot.setMessageText(message.getText().substring(startIndex, endIndex).length() > 255 ?
+                        message.getText().substring(startIndex, startIndex + 255) : message.getText().substring(startIndex, endIndex));
+                messageFromBot.setId(Long.valueOf(message.getChatId()));
+                messageFromBot.setMessageDate(LocalDateTime.now());
+                findEmployeeDto.setChatId(Long.valueOf(message.getChatId()));
+                messageFromBot.setEmployee(employeeService.findOrCreateEmployee(findEmployeeDto));
+                messageFromBotService.saveMessageFromBot(messageFromBot);
+                startIndex += over;
+                endIndex += over;
+                try {
+                    execute(message);
+                    Thread.sleep(2000);
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+
+        } else {
+            MessageFromBot messageFromBot = new MessageFromBot();
+
+            messageFromBot.setMessageText(message.getText());
+            messageFromBot.setId(Long.valueOf(message.getChatId()));
+            messageFromBot.setMessageDate(LocalDateTime.now());
+            findEmployeeDto.setChatId(Long.valueOf(message.getChatId()));
+            messageFromBot.setEmployee(employeeService.findOrCreateEmployee(findEmployeeDto));
+            messageFromBotService.saveMessageFromBot(messageFromBot);
+
+            try {
+                execute(message);
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
         }
+
+
     }
 
     public void sendAdminPanel(String chatId) {
@@ -187,8 +314,12 @@ public class TgBot extends TelegramLongPollingBot {
             row.add(deleteAdminCommand);
             //кнопка getAllUsers
             KeyboardButton getAllUsersCommand = new KeyboardButton();
-            deleteAdminCommand.setText("/getAllUsers");
+            getAllUsersCommand.setText("/getAllUsers");
             row.add(getAllUsersCommand);
+            //кнопка getAllUsersMessage
+            KeyboardButton getUserMessagesCommand = new KeyboardButton();
+            getUserMessagesCommand.setText("/getUserMessages");
+            row.add(getUserMessagesCommand);
 
 
             keyboard.add(row);
