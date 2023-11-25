@@ -127,7 +127,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                 if (inMessage.equals("/addAdmin")) {
                     List<Admin> admins = adminService.getAll();
-                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_USERNAME_FOR_ADD_ADMIN;
@@ -144,7 +144,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                 } else if (inMessage.equals("/deleteAdmin")) {
                     List<Admin> admins = adminService.getAll();
-                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_ID_FOR_DELETE_ADMIN;
@@ -160,12 +160,17 @@ public class TgBot extends TelegramLongPollingBot {
                     sendTextMessage(chatId, "\uD83D\uDE3C");
 
                 } else if (inMessage.equals("/getAllUsers")) {
-
-                    sendTextMessage(chatId, employeeService.getAllEmployees());
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+                        sendTextMessage(chatId, employeeService.getAllEmployees());
+                    } else {
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+                    }
 
                 } else if (inMessage.equals("/getUserMessages")) {
                     List<Admin> admins = adminService.getAll();
-                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_ID_FOR_USERS_MESSAGE;
@@ -179,7 +184,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                 } else if (inMessage.equals("/changeUserStatus")) {
                     List<Admin> admins = adminService.getAll();
-                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
                         botState = State.WAITING_ID_FOR_CHANGE_USERS_STATUS;
