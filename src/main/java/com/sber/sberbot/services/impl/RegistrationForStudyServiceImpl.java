@@ -1,0 +1,64 @@
+package com.sber.sberbot.services.impl;
+
+import com.sber.sberbot.models.Employee;
+import com.sber.sberbot.models.RegistrationForStudy;
+import com.sber.sberbot.repos.EmployeeRepo;
+import com.sber.sberbot.repos.RegistrationForStudyRepo;
+import com.sber.sberbot.services.RegistrationForStudyService;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Service
+public class RegistrationForStudyServiceImpl implements RegistrationForStudyService {
+
+    private final EmployeeRepo employeeRepo;
+    private final RegistrationForStudyRepo registrationForStudyRepo;
+
+    public RegistrationForStudyServiceImpl(EmployeeRepo employeeRepo, RegistrationForStudyRepo registrationForStudyRepo) {
+        this.employeeRepo = employeeRepo;
+        this.registrationForStudyRepo = registrationForStudyRepo;
+    }
+
+    @Override
+    public String addUsersToStudy(String idAndDate) {
+        String input = idAndDate;
+
+        // Регулярное выражение для поиска цифры и следующей за ней даты в формате "день-месяц-год"
+        String regex = "\\d;\\d{2}-\\d{2}-\\d{4}";
+
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(input);
+
+        int indexAfterId = input.indexOf(";");
+        Long idInput = Long.valueOf(input.substring(0,indexAfterId));
+        String dateString = input.substring(indexAfterId+1);
+        System.err.println(dateString);
+
+
+        System.err.println(input.substring(0,indexAfterId));
+        Employee employee = employeeRepo.findById(idInput).get();
+
+
+        if (!matcher.find() || employee == null) {
+            return null;
+        } else {
+            RegistrationForStudy registrationForStudy = new RegistrationForStudy();
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+            LocalDate date = LocalDate.parse(dateString, formatter);
+            System.err.println(date);
+
+            registrationForStudy.setEmployee(employee);
+            registrationForStudy.setDateOfEvent(date);
+
+            registrationForStudyRepo.save(registrationForStudy);
+
+            return "Пользователь успешно записан на обучение";
+        }
+    }
+}

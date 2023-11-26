@@ -1,15 +1,9 @@
 package com.sber.sberbot.configs;
 
-import com.sber.sberbot.models.Admin;
-import com.sber.sberbot.models.Employee;
-import com.sber.sberbot.models.MessageFromBot;
-import com.sber.sberbot.models.MessageFromUser;
+import com.sber.sberbot.models.*;
 import com.sber.sberbot.models.dtos.FindEmployeeDto;
 import com.sber.sberbot.models.enums.State;
-import com.sber.sberbot.services.AdminService;
-import com.sber.sberbot.services.EmployeeService;
-import com.sber.sberbot.services.MessageFromBotService;
-import com.sber.sberbot.services.MessageFromUserService;
+import com.sber.sberbot.services.*;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -32,19 +26,20 @@ public class TgBot extends TelegramLongPollingBot {
     final EmployeeService employeeService;
     final MessageFromUserService messageFromUserService;
     final MessageFromBotService messageFromBotService;
+    final RegistrationForStudyService registrationForStudyService;
 
-    public TgBot(BotConfig botConfig, AdminService adminService, EmployeeService employeeService, MessageFromUserService messageFromUserService, MessageFromBotService messageFromBotService) {
+    public TgBot(BotConfig botConfig, AdminService adminService, EmployeeService employeeService, MessageFromUserService messageFromUserService, MessageFromBotService messageFromBotService, RegistrationForStudyService registrationForStudyService) {
         this.botConfig = botConfig;
         this.adminService = adminService;
         this.employeeService = employeeService;
         this.messageFromUserService = messageFromUserService;
         this.messageFromBotService = messageFromBotService;
+        this.registrationForStudyService = registrationForStudyService;
     }
 
     @Override
     public void onUpdateReceived(Update update) {
 
-        //сделать отправку сообщений от чела с датой и дроблением на смс
         try {
 
             String chatId = update.getMessage().getChatId().toString();
@@ -94,20 +89,16 @@ public class TgBot extends TelegramLongPollingBot {
 
                 String messageStr;
 
-                if (botState == State.WAITING_ID_FOR_USERS_MESSAGE) {
 
-                    botState = State.FREE;
+                if ((messageStr = messageFromUserService.getUserMessages(Long.valueOf(inMessage))) == null) {
 
+                    sendTextMessage(chatId, "Пользователь с таким id не найден");
 
-                    if ((messageStr = messageFromUserService.getUserMessages(Long.valueOf(inMessage))) == null) {
+                } else {
 
-                        sendTextMessage(chatId, "Пользователь с таким id не найден");
-
-                    } else {
-
-                        sendTextMessage(chatId, messageStr);
-                    }
+                    sendTextMessage(chatId, messageStr);
                 }
+
             } else if (botState == State.WAITING_ID_FOR_CHANGE_USERS_STATUS) {
                 botState = State.FREE;
 
@@ -119,6 +110,16 @@ public class TgBot extends TelegramLongPollingBot {
 
                 } else {
 
+                    sendTextMessage(chatId, messageStr);
+                }
+
+            } else if (botState == State.WAITING_ID_FOR_ADD_USERS_TO_STUDY) {
+                botState = State.FREE;
+                String messageStr;
+                if ((messageStr = registrationForStudyService.addUsersToStudy(inMessage.
+                        replaceAll("\\s+", ""))) == null) { // удаляет все пробелы
+                    sendTextMessage(chatId, "Не найден пользователь с таким айди или не правильно указана дата");
+                } else {
                     sendTextMessage(chatId, messageStr);
                 }
 
@@ -190,6 +191,22 @@ public class TgBot extends TelegramLongPollingBot {
                         botState = State.WAITING_ID_FOR_CHANGE_USERS_STATUS;
                         sendTextMessage(chatId, employeeService.getAllEmployees() +
                                 "\n Введите id пользователя чей статус хотите поменять");
+
+                    } else {
+
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+
+                    }
+                } else if (inMessage.equals("/addUserToStudyEvent")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        botState = State.WAITING_ID_FOR_ADD_USERS_TO_STUDY;
+
+                        sendTextMessage(chatId, employeeService.getAllEmployees() +
+                                "\n Введите id пользователя которого хотите записать на обучение и " +
+                                "установите дату через ; . Например - 3;31-12-2023");
 
                     } else {
 
@@ -360,6 +377,11 @@ public class TgBot extends TelegramLongPollingBot {
             KeyboardButton changeUserStatusCommand = new KeyboardButton();
             changeUserStatusCommand.setText("/changeUserStatus");
             row.add(changeUserStatusCommand);
+            //кнопка addUserToStudyEvent
+            KeyboardButton addUserToStudyCommand = new KeyboardButton();
+            addUserToStudyCommand.setText("/addUserToStudyEvent");
+            row.add(addUserToStudyCommand);
+
 
 
             keyboard.add(row);
