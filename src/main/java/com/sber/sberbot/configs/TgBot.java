@@ -213,6 +213,19 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
 
                     }
+                } else if (inMessage.equals("/getStudyList")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+
+                        sendTextMessage(chatId, registrationForStudyService.getStudyList());
+
+                    } else {
+
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+
+                    }
                 }
 
             }
@@ -279,7 +292,8 @@ public class TgBot extends TelegramLongPollingBot {
                 throw new RuntimeException(e);
             }
             MessageFromBot message = new MessageFromBot();
-            message.setMessageText(text);
+            message.setMessageText(text.substring(0, text.length()).length() > 255 ?
+                    text.substring(0, 255) : text);
             message.setId(Long.valueOf(chatId));
             message.setMessageDate(LocalDateTime.now());
             findEmployeeDto.setChatId(Long.valueOf(chatId));
@@ -351,41 +365,57 @@ public class TgBot extends TelegramLongPollingBot {
         if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) ||
                 a.getEndDate().isAfter(LocalDate.now()))) {
             ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-            List<KeyboardRow> keyboard = new ArrayList<>();
+            keyboardMarkup.setSelective(true);
+            keyboardMarkup.setResizeKeyboard(true);
+            keyboardMarkup.setOneTimeKeyboard(false);
 
+            List<KeyboardRow> keyboard = new ArrayList<>();
             KeyboardRow row = new KeyboardRow();
+            KeyboardRow row2 = new KeyboardRow();
+            KeyboardRow row3 = new KeyboardRow();
+            KeyboardRow row4 = new KeyboardRow();
 
             // Команды для админ панели
 
-            //кнопка AddAdmin
             KeyboardButton addAdminCommand = new KeyboardButton();
             addAdminCommand.setText("/addAdmin");
             row.add(addAdminCommand);
-            //кнопка DeleteAdmin
+
             KeyboardButton deleteAdminCommand = new KeyboardButton();
             deleteAdminCommand.setText("/deleteAdmin");
             row.add(deleteAdminCommand);
-            //кнопка getAllUsers
+
             KeyboardButton getAllUsersCommand = new KeyboardButton();
             getAllUsersCommand.setText("/getAllUsers");
-            row.add(getAllUsersCommand);
+            row2.add(getAllUsersCommand);
+
             //кнопка getAllUsersMessage
             KeyboardButton getUserMessagesCommand = new KeyboardButton();
             getUserMessagesCommand.setText("/getUserMessages");
-            row.add(getUserMessagesCommand);
+            row2.add(getUserMessagesCommand);
             //кнопка changeUserStatus
             KeyboardButton changeUserStatusCommand = new KeyboardButton();
             changeUserStatusCommand.setText("/changeUserStatus");
-            row.add(changeUserStatusCommand);
+            row3.add(changeUserStatusCommand);
             //кнопка addUserToStudyEvent
             KeyboardButton addUserToStudyCommand = new KeyboardButton();
             addUserToStudyCommand.setText("/addUserToStudyEvent");
-            row.add(addUserToStudyCommand);
+            row3.add(addUserToStudyCommand);
+            //кнопка getStudyList
+            KeyboardButton getStudyListCommand = new KeyboardButton();
+            getStudyListCommand.setText("/getStudyList");
+            row4.add(getStudyListCommand);
+            //кнопка addUserToStudyEvent
+            KeyboardButton adc2Command = new KeyboardButton();
+            adc2Command.setText("/СоняНеДурак");
+            row4.add(adc2Command);
 
-
+            // Добавьте другие команды, как вам необходимо
 
             keyboard.add(row);
-
+            keyboard.add(row2);
+            keyboard.add(row3);
+            keyboard.add(row4);
             keyboardMarkup.setKeyboard(keyboard);
 
             SendMessage message = new SendMessage();

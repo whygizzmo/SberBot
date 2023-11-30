@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,12 +36,12 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
         Matcher matcher = pattern.matcher(input);
 
         int indexAfterId = input.indexOf(";");
-        Long idInput = Long.valueOf(input.substring(0,indexAfterId));
-        String dateString = input.substring(indexAfterId+1);
+        Long idInput = Long.valueOf(input.substring(0, indexAfterId));
+        String dateString = input.substring(indexAfterId + 1);
         System.err.println(dateString);
 
 
-        System.err.println(input.substring(0,indexAfterId));
+        System.err.println(input.substring(0, indexAfterId));
         Employee employee = employeeRepo.findById(idInput).get();
 
 
@@ -60,5 +62,18 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
 
             return "Пользователь успешно записан на обучение";
         }
+    }
+
+    @Override
+    public String getStudyList() {
+        List<RegistrationForStudy> studies = registrationForStudyRepo.findAll();
+        String output = "Список записей на обучение : \n  ID, дата, присутсвовал, получил оповещение, пользователь(id).\n\n";
+
+        for (RegistrationForStudy reg : studies) {
+            output+= reg.getId() + " || " + reg.getDateOfEvent() + " || " + reg.isAppeared() + " || " + reg.isInform() +
+                    " || " + reg.getEmployee().getUsername()+"("+reg.getEmployee().getId()+")\n";
+        }
+
+        return output;
     }
 }
