@@ -7,8 +7,11 @@ import com.sber.sberbot.services.*;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -16,6 +19,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -42,8 +46,8 @@ public class TgBot extends TelegramLongPollingBot {
 
         try {
 
-            String chatId = update.getMessage().getChatId().toString();
-            String inMessage = update.getMessage().getText();
+            String chatId = update.hasMessage() ? update.getMessage().getChatId().toString() : update.getCallbackQuery().getFrom().getId().toString();
+            String inMessage = update.hasMessage() && update.getMessage().hasText() ? update.getMessage().getText() : "";
 
             if (update.hasMessage() && update.getMessage().hasText()) {
                 FindEmployeeDto findEmployeeDto = new FindEmployeeDto();
@@ -57,6 +61,18 @@ public class TgBot extends TelegramLongPollingBot {
                 messageFromUser.setEmployee(employee);
                 messageFromUser.setMessageDate(LocalDateTime.now());
                 messageFromUserService.createNewMessage(messageFromUser);
+
+            }
+            if (update.hasCallbackQuery()) {
+                CallbackQuery callbackQuery = update.getCallbackQuery();
+                String data = callbackQuery.getData();
+
+                if (data.equals("present_from_studies")) {
+                    registrationForStudyService.makeAppearedTrue(chatId);
+                    sendTextMessage(chatId, "мы вас записали");
+                } else if (data.equals("absent_from_studies")) {
+                    sendTextMessage(chatId, "обратитя к менжеру");
+                }
 
             }
 
@@ -226,15 +242,20 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
 
                     }
+                } else if (inMessage.equals("/скинутьОпросНаОбучение")) {
+                    List<RegistrationForStudy> studies = registrationForStudyService.sendInform();
+                    for (int i = 0; i < studies.size(); i++) {
+                        //sendTextMessage(studies.get(i).getEmployee().getTgId().toString(),"вы присутствовали на обучении");
+                        sendStudyPanel(studies.get(i).getEmployee().getTgId().toString());
+                    }
+
                 }
 
             }
         } catch (Exception e) {
-            //??? ?? ?????? ?????? ????. ?? ???? ????? ??? ?????? ????? ???????
             System.err.println(e);
             System.err.println("ERROR");
         }
-        //?????? ??? ???? ?? ????? ???? ?? ??? ?????? ??????????
 
     }
 
@@ -405,9 +426,9 @@ public class TgBot extends TelegramLongPollingBot {
             KeyboardButton getStudyListCommand = new KeyboardButton();
             getStudyListCommand.setText("/getStudyList");
             row4.add(getStudyListCommand);
-            //кнопка addUserToStudyEvent
+            //кнопка скинутьОпрос
             KeyboardButton adc2Command = new KeyboardButton();
-            adc2Command.setText("/СоняНеДурак");
+            adc2Command.setText("/скинутьОпросНаОбучение");
             row4.add(adc2Command);
 
             // Добавьте другие команды, как вам необходимо
@@ -427,6 +448,36 @@ public class TgBot extends TelegramLongPollingBot {
         } else {
             sendTextMessage(chatId, "Вы не являетесь админом");
         }
+
+    }
+
+    public void sendStudyPanel(String chatId) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+
+
+        InlineKeyboardButton presentCommand = new InlineKeyboardButton();
+        presentCommand.setText("Да");
+        presentCommand.setCallbackData("present_from_studies");
+
+        InlineKeyboardButton absentCommand = new InlineKeyboardButton();
+        absentCommand.setText("Нет");
+        absentCommand.setCallbackData("absent_from_studies");
+
+        List<InlineKeyboardButton> row1 = Collections.singletonList(presentCommand);
+        List<InlineKeyboardButton> row2 = Collections.singletonList(absentCommand);
+
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        keyboard.add(row1);
+        keyboard.add(row2);
+
+        inlineKeyboardMarkup.setKeyboard(keyboard);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText("Вы присутствовали на обучении?");
+        message.setReplyMarkup(inlineKeyboardMarkup);
+
+        sendTextMessage(message);
 
     }
 

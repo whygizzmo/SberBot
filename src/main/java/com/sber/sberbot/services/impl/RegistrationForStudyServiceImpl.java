@@ -9,7 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,10 +71,37 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
         String output = "Список записей на обучение : \n  ID, дата, присутсвовал, получил оповещение, пользователь(id).\n\n";
 
         for (RegistrationForStudy reg : studies) {
-            output+= reg.getId() + " || " + reg.getDateOfEvent() + " || " + reg.isAppeared() + " || " + reg.isInform() +
-                    " || " + reg.getEmployee().getUsername()+"("+reg.getEmployee().getId()+")\n";
+            output += reg.getId() + " || " + reg.getDateOfEvent() + " || " + reg.isAppeared() + " || " + reg.isInform() +
+                    " || " + reg.getEmployee().getUsername() + "(" + reg.getEmployee().getId() + ")\n";
         }
 
         return output;
+    }
+
+    @Override
+    public List<RegistrationForStudy> sendInform() {
+        List<RegistrationForStudy> studies = registrationForStudyRepo.getAllActualStudy();
+        System.err.println(studies);
+        for (RegistrationForStudy r : studies) {
+            r.setInform(true);
+        }
+        registrationForStudyRepo.saveAll(studies);
+        return studies;
+    }
+
+    @Override
+    public void makeAppearedTrue(String chatTgId) {
+        Long longTgId = Long.valueOf(chatTgId);
+         List<RegistrationForStudy> studies = registrationForStudyRepo.findAllByIsAppearedFalseAndIsInformTrueAndEmployee_TgId(longTgId);
+        System.err.println(studies);
+        Comparator<RegistrationForStudy> idComparator = Comparator.comparing(RegistrationForStudy::getId);
+        //получение всех записей подходящих по условиям и сортировка по айди чтобы взять последнюю запись и она была самой актуальной
+        Collections.sort(studies, idComparator);
+        RegistrationForStudy study = studies.get(studies.size()-1);
+
+        study.setAppeared(true);
+
+        registrationForStudyRepo.save(study);
+
     }
 }
