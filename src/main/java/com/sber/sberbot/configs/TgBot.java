@@ -155,6 +155,17 @@ public class TgBot extends TelegramLongPollingBot {
 
                     }
 
+                } else if (inMessage.equals("/getAllAdmin")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        sendTextMessage(chatId,"Список администраторов : \n\n"+ adminService.getAdmins());
+                    } else {
+
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+
+                    }
                 } else if (inMessage.equals("/admin")) {
 
                     sendAdminPanel(chatId);
@@ -243,12 +254,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                     }
                 } else if (inMessage.equals("/скинутьОпросНаОбучение")) {
-                    List<RegistrationForStudy> studies = registrationForStudyService.sendInform();
-                    for (int i = 0; i < studies.size(); i++) {
-                        //sendTextMessage(studies.get(i).getEmployee().getTgId().toString(),"вы присутствовали на обучении");
-                        sendStudyPanel(studies.get(i).getEmployee().getTgId().toString());
-                    }
-
+                    sendQuizStudy();
                 }
 
             }
@@ -380,6 +386,12 @@ public class TgBot extends TelegramLongPollingBot {
 
 
     }
+    public void sendQuizStudy(){
+        List<RegistrationForStudy> studies = registrationForStudyService.sendInform();
+        for (int i = 0; i < studies.size(); i++) {
+            sendStudyPanel(studies.get(i).getEmployee().getTgId().toString());
+        }
+    }
 
     public void sendAdminPanel(String chatId) {
         List<Admin> admins = adminService.getAll();
@@ -428,7 +440,7 @@ public class TgBot extends TelegramLongPollingBot {
             row4.add(getStudyListCommand);
             //кнопка скинутьОпрос
             KeyboardButton adc2Command = new KeyboardButton();
-            adc2Command.setText("/скинутьОпросНаОбучение");
+            adc2Command.setText("/getAllAdmin");
             row4.add(adc2Command);
 
             // Добавьте другие команды, как вам необходимо
