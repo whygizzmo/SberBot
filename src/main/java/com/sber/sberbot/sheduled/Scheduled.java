@@ -15,7 +15,7 @@ public class Scheduled {
         this.botService = botService;
     }
 
-    @org.springframework.scheduling.annotation.Scheduled(cron = "0 0 17 * * *")//12 часов каждого дня
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 47 18 * * *")//12 часов каждого дня
     public void getQueueSize() {
         System.out.println("Шедулер начал работать: " + LocalDateTime.now());
         botService.sendStudyQuiz();

@@ -12,4 +12,6 @@ public interface RegistrationForStudyService {
     List<RegistrationForStudy> sendInform();
 
     void makeAppearedTrue(String chatTgId);
+
+    void makeWorkTrue(String chatTgId);
 }

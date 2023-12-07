@@ -22,6 +22,8 @@ public class RegistrationForStudy {
     Employee employee;
     boolean isAppeared;
     boolean isInform;
+    boolean isWork;
+
     LocalDate dateOfEvent;
 
 

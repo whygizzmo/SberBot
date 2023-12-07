@@ -14,4 +14,6 @@ public interface RegistrationForStudyRepo extends JpaRepository<RegistrationForS
 
     //List<RegistrationForStudy> findAllByAppearedIsFalseAndInformIsTrueAndEmployee_TgId(Long tgId);
     List<RegistrationForStudy> findAllByIsAppearedFalseAndIsInformTrueAndEmployee_TgId(Long tgId);
+    List<RegistrationForStudy> findAllByIsAppearedTrueAndIsWorkFalseAndEmployee_TgId(Long tgId);
+
 }

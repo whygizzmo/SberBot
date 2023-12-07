@@ -69,9 +69,14 @@ public class TgBot extends TelegramLongPollingBot {
 
                 if (data.equals("present_from_studies")) {
                     registrationForStudyService.makeAppearedTrue(chatId);
-                    sendTextMessage(chatId, "мы вас записали");
+                    sendWorkPanel(chatId);
                 } else if (data.equals("absent_from_studies")) {
-                    sendTextMessage(chatId, "обратитя к менжеру");
+                    sendTextMessage(chatId, "обратитесь к менеджеру");
+                } else if (data.equals("present_from_work")) {
+                    registrationForStudyService.makeWorkTrue(chatId);
+                    sendTextMessage(chatId, "Позравляем, успешной работы!");
+                } else if (data.equals("absent_from_work")) {
+                    sendTextMessage(chatId, "обратитесь к менеджеру");
                 }
 
             }
@@ -160,7 +165,7 @@ public class TgBot extends TelegramLongPollingBot {
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        sendTextMessage(chatId,"Список администраторов : \n\n"+ adminService.getAdmins());
+                        sendTextMessage(chatId, "Список администраторов : \n\n" + adminService.getAdmins());
                     } else {
 
                         sendTextMessage(chatId, "Вы не являетесь админом");
@@ -386,7 +391,8 @@ public class TgBot extends TelegramLongPollingBot {
 
 
     }
-    public void sendQuizStudy(){
+
+    public void sendQuizStudy() {
         List<RegistrationForStudy> studies = registrationForStudyService.sendInform();
         for (int i = 0; i < studies.size(); i++) {
             sendStudyPanel(studies.get(i).getEmployee().getTgId().toString());
@@ -487,6 +493,36 @@ public class TgBot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText("Вы присутствовали на обучении?");
+        message.setReplyMarkup(inlineKeyboardMarkup);
+
+        sendTextMessage(message);
+
+    }
+
+    public void sendWorkPanel(String chatId) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+
+
+        InlineKeyboardButton presentCommand = new InlineKeyboardButton();
+        presentCommand.setText("Да");
+        presentCommand.setCallbackData("present_from_work");
+
+        InlineKeyboardButton absentCommand = new InlineKeyboardButton();
+        absentCommand.setText("Нет");
+        absentCommand.setCallbackData("absent_from_work");
+
+        List<InlineKeyboardButton> row1 = Collections.singletonList(presentCommand);
+        List<InlineKeyboardButton> row2 = Collections.singletonList(absentCommand);
+
+        List<List<InlineKeyboardButton>> keyboard = new ArrayList<>();
+        keyboard.add(row1);
+        keyboard.add(row2);
+
+        inlineKeyboardMarkup.setKeyboard(keyboard);
+
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText("Вы поставили первую смену?");
         message.setReplyMarkup(inlineKeyboardMarkup);
 
         sendTextMessage(message);
