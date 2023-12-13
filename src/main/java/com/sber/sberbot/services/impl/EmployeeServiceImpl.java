@@ -2,6 +2,7 @@ package com.sber.sberbot.services.impl;
 
 import com.sber.sberbot.models.Employee;
 import com.sber.sberbot.models.dtos.FindEmployeeDto;
+import com.sber.sberbot.models.enums.State;
 import com.sber.sberbot.repos.EmployeeRepo;
 import com.sber.sberbot.services.EmployeeService;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             employee.setActive(true);
             employee.setTgId(findEmployeeDto.getChatId());
             employee.setUsername(findEmployeeDto.getUsername());
+            employee.setStatusTg(State.FREE);
 
             return employeeRepo.save(employee);
         }
@@ -57,5 +59,10 @@ public class EmployeeServiceImpl implements EmployeeService {
                     "   " + employees.get(i).isActive() + "\n";
         }
         return employeesStr;
+    }
+
+    @Override
+    public void update(Employee employee) {
+        employeeRepo.save(employee);
     }
 }

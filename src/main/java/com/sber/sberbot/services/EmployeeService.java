@@ -9,4 +9,6 @@ public interface EmployeeService {
     Employee findOrCreateEmployee(FindEmployeeDto findEmployeeDto);
 
     String getAllEmployees();
+
+    void update(Employee employee);
 }
