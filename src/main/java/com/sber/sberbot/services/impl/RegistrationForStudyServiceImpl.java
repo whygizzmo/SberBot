@@ -39,10 +39,8 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
         int indexAfterId = input.indexOf(";");
         Long idInput = Long.valueOf(input.substring(0, indexAfterId));
         String dateString = input.substring(indexAfterId + 1);
-        System.err.println(dateString);
 
 
-        System.err.println(input.substring(0, indexAfterId));
         Employee employee = employeeRepo.findById(idInput).get();
 
 
@@ -54,7 +52,6 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
             LocalDate date = LocalDate.parse(dateString, formatter);
-            System.err.println(date);
 
             registrationForStudy.setEmployee(employee);
             registrationForStudy.setDateOfEvent(date);
@@ -81,7 +78,6 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
     @Override
     public List<RegistrationForStudy> sendInform() {
         List<RegistrationForStudy> studies = registrationForStudyRepo.getAllActualStudy();
-        System.err.println(studies);
         for (RegistrationForStudy r : studies) {
             r.setInform(true);
         }
@@ -93,7 +89,6 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
     public void makeAppearedTrue(String chatTgId) {
         Long longTgId = Long.valueOf(chatTgId);
         List<RegistrationForStudy> studies = registrationForStudyRepo.findAllByIsAppearedFalseAndIsInformTrueAndEmployee_TgId(longTgId);
-        System.err.println(studies);
         Comparator<RegistrationForStudy> idComparator = Comparator.comparing(RegistrationForStudy::getId);
         //получение всех записей подходящих по условиям и сортировка по айди чтобы взять последнюю запись и она была самой актуальной
         Collections.sort(studies, idComparator);
@@ -109,7 +104,6 @@ public class RegistrationForStudyServiceImpl implements RegistrationForStudyServ
     public void makeWorkTrue(String chatTgId) {
         Long longTgId = Long.valueOf(chatTgId);
         List<RegistrationForStudy> studies = registrationForStudyRepo.findAllByIsAppearedTrueAndIsWorkFalseAndEmployee_TgId(longTgId);
-        System.err.println(studies);
         Comparator<RegistrationForStudy> idComparator = Comparator.comparing(RegistrationForStudy::getId);
         //получение всех записей подходящих по условиям и сортировка по айди чтобы взять последнюю запись и она была самой актуальной
         Collections.sort(studies, idComparator);
