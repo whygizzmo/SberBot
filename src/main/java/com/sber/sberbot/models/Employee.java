@@ -1,6 +1,7 @@
 package com.sber.sberbot.models;
 
 
+import com.sber.sberbot.models.enums.State;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -18,4 +19,6 @@ public class Employee {
     Long tgId;
     String username;
     boolean isActive;
+    @Enumerated(value = EnumType.STRING)
+    State statusTg;
 }

@@ -24,7 +24,7 @@ import java.util.List;
 
 @Component
 public class TgBot extends TelegramLongPollingBot {
-    State botState = State.FREE;
+    Employee employee = new Employee();
     final BotConfig botConfig;
     final AdminService adminService;
     final EmployeeService employeeService;
@@ -54,7 +54,7 @@ public class TgBot extends TelegramLongPollingBot {
                 findEmployeeDto.setUsername(update.getMessage().getFrom().getUserName());
                 findEmployeeDto.setChatId(Long.valueOf(chatId));
 
-                Employee employee = employeeService.findOrCreateEmployee(findEmployeeDto);
+                employee = employeeService.findOrCreateEmployee(findEmployeeDto);
 
                 MessageFromUser messageFromUser = new MessageFromUser();
                 messageFromUser.setMessageText(inMessage);
@@ -71,18 +71,21 @@ public class TgBot extends TelegramLongPollingBot {
                     registrationForStudyService.makeAppearedTrue(chatId);
                     sendWorkPanel(chatId);
                 } else if (data.equals("absent_from_studies")) {
-                    sendTextMessage(chatId, "обратитесь к менеджеру");
+                    sendTextMessage(chatId, "Обратитесь к менеджеру");
                 } else if (data.equals("present_from_work")) {
                     registrationForStudyService.makeWorkTrue(chatId);
                     sendTextMessage(chatId, "Позравляем, успешной работы!");
                 } else if (data.equals("absent_from_work")) {
-                    sendTextMessage(chatId, "обратитесь к менеджеру");
+                    sendTextMessage(chatId, "Обратитесь к менеджеру");
                 }
 
             }
 
-            if (botState == State.WAITING_USERNAME_FOR_ADD_ADMIN) {
-                botState = State.FREE;
+            if (employee.getStatusTg() == State.WAITING_USERNAME_FOR_ADD_ADMIN) {
+
+                employee.setStatusTg(State.FREE);
+                employeeService.update(employee);
+
                 if (adminService.createNewAdmin(inMessage.trim(), update.getMessage().getChat().getUserName()) == null) {
 
                     sendTextMessage(chatId, "Юзер с таким ником не найден");
@@ -91,9 +94,10 @@ public class TgBot extends TelegramLongPollingBot {
 
                     sendTextMessage(chatId, "Админ добавлен");
                 }
-            } else if (botState == State.WAITING_ID_FOR_DELETE_ADMIN) {
+            } else if (employee.getStatusTg() == State.WAITING_ID_FOR_DELETE_ADMIN) {
 
-                botState = State.FREE;
+                employee.setStatusTg(State.FREE);
+                employeeService.update(employee);
 
                 if (adminService.deleteAdmin(Long.valueOf(inMessage)) == null) {
 
@@ -104,12 +108,12 @@ public class TgBot extends TelegramLongPollingBot {
                     sendTextMessage(chatId, "Админ успешно удален");
                 }
 
-            } else if (botState == State.WAITING_ID_FOR_USERS_MESSAGE) {
+            } else if (employee.getStatusTg() == State.WAITING_ID_FOR_USERS_MESSAGE) {
 
-                botState = State.FREE;
+                employee.setStatusTg(State.FREE);
+                employeeService.update(employee);
 
                 String messageStr;
-
 
                 if ((messageStr = messageFromUserService.getUserMessages(Long.valueOf(inMessage))) == null) {
 
@@ -120,8 +124,10 @@ public class TgBot extends TelegramLongPollingBot {
                     sendTextMessage(chatId, messageStr);
                 }
 
-            } else if (botState == State.WAITING_ID_FOR_CHANGE_USERS_STATUS) {
-                botState = State.FREE;
+            } else if (employee.getStatusTg() == State.WAITING_ID_FOR_CHANGE_USERS_STATUS) {
+
+                employee.setStatusTg(State.FREE);
+                employeeService.update(employee);
 
                 String messageStr;
 
@@ -134,8 +140,11 @@ public class TgBot extends TelegramLongPollingBot {
                     sendTextMessage(chatId, messageStr);
                 }
 
-            } else if (botState == State.WAITING_ID_FOR_ADD_USERS_TO_STUDY) {
-                botState = State.FREE;
+            } else if (employee.getStatusTg() == State.WAITING_ID_FOR_ADD_USERS_TO_STUDY) {
+
+                employee.setStatusTg(State.FREE);
+                employeeService.update(employee);
+
                 String messageStr;
                 if ((messageStr = registrationForStudyService.addUsersToStudy(inMessage.
                         replaceAll("\\s+", ""))) == null) { // удаляет все пробелы
@@ -144,15 +153,26 @@ public class TgBot extends TelegramLongPollingBot {
                     sendTextMessage(chatId, messageStr);
                 }
 
-            } else if (botState == State.FREE) {
+            } else if (employee.getStatusTg() == State.WAITING_START) {
+
+                employee.setStatusTg(State.FREE);
+                employeeService.update(employee);
+
+                sendTextMessage(chatId, "Отлично, ты записан в базу. Смотри, это наша поддержка, по всем вопросам ты можешь обращаться сюда: \n" +
+                        "❗️Твой реализатор проекта - @Alyoshina_HR (пишешь по вопросам выплат, бонусам, апд, акции и проблем с шопером)\n" +
+                        "❗️Твой супервайзер - @maratintkzn (пишешь по вопросам по работе, если хочешь пригласить друга и если потерял рабочие группы)\n" +
+                        "❗️Номер горячий линии для партнеров - 88003332428 (Также сюда можно обращаться по всем рабочим вопросам)");
+            } else if (employee.getStatusTg() == State.FREE) {
 
 
-                if (inMessage.equals("/addAdmin")) {
+                if (inMessage.equals("/Добавить_Админа")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        botState = State.WAITING_USERNAME_FOR_ADD_ADMIN;
+                        employee.setStatusTg(State.WAITING_USERNAME_FOR_ADD_ADMIN);
+                        employeeService.update(employee);
+
                         sendTextMessage(chatId, "Введите юзернейм нового админа");
                     } else {
 
@@ -160,7 +180,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                     }
 
-                } else if (inMessage.equals("/getAllAdmin")) {
+                } else if (inMessage.equals("/Список_Админов")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
@@ -173,14 +193,26 @@ public class TgBot extends TelegramLongPollingBot {
                     }
                 } else if (inMessage.equals("/admin")) {
 
-                    sendAdminPanel(chatId);
-
-                } else if (inMessage.equals("/deleteAdmin")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        botState = State.WAITING_ID_FOR_DELETE_ADMIN;
+                        sendAdminPanel(chatId);
+
+                    } else {
+
+                        sendTextMessage(chatId, "Вы не являетесь админом");
+
+                    }
+
+                } else if (inMessage.equals("/Удалить_Админа")) {
+                    List<Admin> admins = adminService.getAll();
+                    if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
+                            a.getEndDate().isAfter(LocalDate.now()))) {
+
+                        employee.setStatusTg(State.WAITING_ID_FOR_DELETE_ADMIN);
+                        employeeService.update(employee);
+
                         sendTextMessage(chatId, adminService.getAdmins() + "\nВведите id админа которого хотите удалить");
                     } else {
 
@@ -192,7 +224,7 @@ public class TgBot extends TelegramLongPollingBot {
                     adminService.createNewAdmin(update.getMessage().getChat().getUserName(), null);
                     sendTextMessage(chatId, "\uD83D\uDE3C");
 
-                } else if (inMessage.equals("/getAllUsers")) {
+                } else if (inMessage.equals("/Все_Пользователи")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
@@ -201,12 +233,14 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
                     }
 
-                } else if (inMessage.equals("/getUserMessages")) {
+                } else if (inMessage.equals("/Сообщения_от_пользователя")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        botState = State.WAITING_ID_FOR_USERS_MESSAGE;
+                        employee.setStatusTg(State.WAITING_ID_FOR_USERS_MESSAGE);
+                        employeeService.update(employee);
+
                         sendTextMessage(chatId, employeeService.getAllEmployees() +
                                 "\nВведите id пользователя чьи сообщения хотите получить :  ");
                     } else {
@@ -215,12 +249,15 @@ public class TgBot extends TelegramLongPollingBot {
 
                     }
 
-                } else if (inMessage.equals("/changeUserStatus")) {
+                } else if (inMessage.equals("/Изменить_статус_польз-ля")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        botState = State.WAITING_ID_FOR_CHANGE_USERS_STATUS;
+                        employee.setStatusTg(State.WAITING_ID_FOR_CHANGE_USERS_STATUS);
+                        employeeService.update(employee);
+
+
                         sendTextMessage(chatId, employeeService.getAllEmployees() +
                                 "\n Введите id пользователя чей статус хотите поменять");
 
@@ -229,12 +266,14 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
 
                     }
-                } else if (inMessage.equals("/addUserToStudyEvent")) {
+                } else if (inMessage.equals("/Добавить_на_обучение")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
 
-                        botState = State.WAITING_ID_FOR_ADD_USERS_TO_STUDY;
+                        employee.setStatusTg(State.WAITING_ID_FOR_ADD_USERS_TO_STUDY);
+                        employeeService.update(employee);
+
 
                         sendTextMessage(chatId, employeeService.getAllEmployees() +
                                 "\n Введите id пользователя которого хотите записать на обучение и " +
@@ -245,7 +284,7 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
 
                     }
-                } else if (inMessage.equals("/getStudyList")) {
+                } else if (inMessage.equals("/Список_обучения")) {
                     List<Admin> admins = adminService.getAll();
                     if (admins.stream().anyMatch(a -> a.getEmployee().getTgId().toString().equals(chatId) &&
                             a.getEndDate().isAfter(LocalDate.now()))) {
@@ -258,8 +297,12 @@ public class TgBot extends TelegramLongPollingBot {
                         sendTextMessage(chatId, "Вы не являетесь админом");
 
                     }
-                } else if (inMessage.equals("/скинутьОпросНаОбучение")) {
+                } else if (inMessage.equals("/пуш")) {
                     sendQuizStudy();
+                } else if (inMessage.equals("/start")) {
+                    employee.setStatusTg(State.WAITING_START);
+                    employeeService.update(employee);
+                    sendTextMessage(chatId, "Привет \uD83D\uDD90\uD83C\uDFFB \n \uD83E\uDD8B Напиши свое ФИО и номер телефона с которого ты работаешь");
                 }
 
             }
@@ -417,36 +460,36 @@ public class TgBot extends TelegramLongPollingBot {
             // Команды для админ панели
 
             KeyboardButton addAdminCommand = new KeyboardButton();
-            addAdminCommand.setText("/addAdmin");
+            addAdminCommand.setText("/Добавить_Админа");
             row.add(addAdminCommand);
 
             KeyboardButton deleteAdminCommand = new KeyboardButton();
-            deleteAdminCommand.setText("/deleteAdmin");
+            deleteAdminCommand.setText("/Удалить_Админа");
             row.add(deleteAdminCommand);
 
             KeyboardButton getAllUsersCommand = new KeyboardButton();
-            getAllUsersCommand.setText("/getAllUsers");
+            getAllUsersCommand.setText("/Все_Пользователи");
             row2.add(getAllUsersCommand);
 
             //кнопка getAllUsersMessage
             KeyboardButton getUserMessagesCommand = new KeyboardButton();
-            getUserMessagesCommand.setText("/getUserMessages");
+            getUserMessagesCommand.setText("/Сообщения_от_пользователя");
             row2.add(getUserMessagesCommand);
             //кнопка changeUserStatus
             KeyboardButton changeUserStatusCommand = new KeyboardButton();
-            changeUserStatusCommand.setText("/changeUserStatus");
+            changeUserStatusCommand.setText("/Изменить_статус_польз-ля");
             row3.add(changeUserStatusCommand);
             //кнопка addUserToStudyEvent
             KeyboardButton addUserToStudyCommand = new KeyboardButton();
-            addUserToStudyCommand.setText("/addUserToStudyEvent");
+            addUserToStudyCommand.setText("/Добавить_на_обучение");
             row3.add(addUserToStudyCommand);
             //кнопка getStudyList
             KeyboardButton getStudyListCommand = new KeyboardButton();
-            getStudyListCommand.setText("/getStudyList");
+            getStudyListCommand.setText("/Список_обучения");
             row4.add(getStudyListCommand);
             //кнопка скинутьОпрос
             KeyboardButton adc2Command = new KeyboardButton();
-            adc2Command.setText("/getAllAdmin");
+            adc2Command.setText("/Список_Админов");
             row4.add(adc2Command);
 
             // Добавьте другие команды, как вам необходимо
